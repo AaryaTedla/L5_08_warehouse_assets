@@ -1,43 +1,51 @@
 
+"""Warehouse asset maintenance management system."""
+
 import json
-import logging
 import tempfile
 from datetime import datetime, timedelta
 
 # Global state
 assets = {}
-SERVICE_INTERVAL_DAYS = 90
+registration_log = []
+settings = {"service_interval_days": 90}
 
-def register_asset(asset_id, machine_type, logs=[]):
+def register_asset(asset_id, machine_type, logs=None):
+    """Register an asset and record the registration."""
+    if logs is None:
+        logs = registration_log
     assets[asset_id] = {"type": machine_type, "last_service": datetime.now().strftime("%Y-%m-%d")}
     logs.append(asset_id)
     print("Registered", asset_id, "- total registrations this run:", len(logs))
 
 def update_service_date(asset_id, date):
+    """Update the last service date for an asset."""
     try:
         assets[asset_id]["last_service"] = date
-    except:
+    except KeyError:
         print("Could not update", asset_id)
 
 def due_for_inspection():
+    """Return assets that are overdue for inspection."""
     due = []
-    for a in assets:
-        last = datetime.strptime(assets[a]["last_service"], "%Y-%m-%d")
-        if datetime.now() - last > timedelta(days=SERVICE_INTERVAL_DAYS):
-            due.append(a)
+    for asset_id, details in assets.items():
+        last = datetime.strptime(details["last_service"], "%Y-%m-%d")
+        if datetime.now() - last > timedelta(days=settings["service_interval_days"]):
+            due.append(asset_id)
     return due
 
 def change_interval(days):
-    global SERVICE_INTERVAL_DAYS
-    SERVICE_INTERVAL_DAYS = days
+    """Change the inspection interval in days."""
+    settings["service_interval_days"] = days
 
 def export_service_report(file="maintenance.json"):
-    f = open(file, "w")
-    f.write(json.dumps(assets, indent=2))
-    f.close()
+    """Export all asset records to a JSON file."""
+    with open(file, "w", encoding="utf-8") as report:
+        json.dump(assets, report, indent=2)
     print("Report written to " + file)
 
 def write_scratch_copy():
+    """Write a secure temporary JSON copy of asset records."""
     with tempfile.NamedTemporaryFile(
         mode="w",
         suffix=".json",
@@ -48,11 +56,17 @@ def write_scratch_copy():
         path = temp_file.name
     print("Scratch copy at", path)
 
-def printAlerts():
-    for a in due_for_inspection():
-        print("ALERT: inspection overdue for", a, assets[a]["type"])
+def print_alerts():
+    """Print alerts for all overdue inspections."""
+    for asset_id in due_for_inspection():
+        print(
+            "ALERT: inspection overdue for",
+            asset_id,
+            assets[asset_id]["type"]
+        )
 
 def main():
+    """Run the warehouse maintenance system."""
     register_asset("FL-01", "Forklift")
     register_asset("CV-07", "Conveyor")
     register_asset("", "Pallet Jack")
@@ -65,7 +79,7 @@ def main():
         update_service_date("CV-07", d)
     if not assets:
         raise RuntimeError("no assets")
-    printAlerts()
+    print_alerts()
     export_service_report()
     write_scratch_copy()
 
