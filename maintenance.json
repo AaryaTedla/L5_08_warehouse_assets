@@ -1,13 +1,13 @@
 {
   "FL-01": {
-    "type": "Crane",
+    "type": "Forklift",
     "last_service": "2025-01-15"
   },
   "CV-07": {
     "type": "Conveyor",
     "last_service": "2026-10-22"
   },
-  "": {
+  "PJ-03": {
     "type": "Pallet Jack",
     "last_service": "2026-10-22"
   }
